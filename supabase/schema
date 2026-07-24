@@ -1,0 +1,141 @@
+-- Driveway Marketplace — Supabase schema
+-- Run this in the Supabase SQL editor before using the app.
+
+-- Profiles (one row per auth user)
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text,
+  created_at timestamptz default now()
+);
+
+-- Listings
+create table if not exists listings (
+  id uuid primary key default gen_random_uuid(),
+  seller_id uuid references auth.users(id) on delete cascade not null,
+  make text not null,
+  model text not null,
+  year int not null,
+  price numeric not null,
+  mileage int not null,
+  body_type text not null,
+  fuel_type text not null default 'Gas',
+  transmission text not null default 'Automatic',
+  drivetrain text,
+  color text,
+  vin text,
+  description text,
+  status text not null default 'active',
+  is_featured boolean not null default false,
+  created_at timestamptz default now()
+);
+
+alter table listings
+  add constraint listings_seller_id_fkey foreign key (seller_id) references profiles(id) on delete cascade;
+
+-- Listing photos
+create table if not exists listing_photos (
+  id uuid primary key default gen_random_uuid(),
+  listing_id uuid references listings(id) on delete cascade not null,
+  storage_path text not null,
+  sort_order int not null default 0
+);
+
+-- Saved listings (buyer favorites)
+create table if not exists saved_listings (
+  user_id uuid references auth.users(id) on delete cascade not null,
+  listing_id uuid references listings(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  primary key (user_id, listing_id)
+);
+
+-- Conversations between buyer and seller
+create table if not exists conversations (
+  id uuid primary key default gen_random_uuid(),
+  listing_id uuid references listings(id) on delete cascade not null,
+  buyer_id uuid references auth.users(id) on delete cascade not null,
+  seller_id uuid references auth.users(id) on delete cascade not null,
+  created_at timestamptz default now()
+);
+
+-- Messages within a conversation
+create table if not exists messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid references conversations(id) on delete cascade not null,
+  sender_id uuid references auth.users(id) on delete cascade not null,
+  body text not null,
+  created_at timestamptz default now()
+);
+
+-- Payments (Stripe checkout records)
+create table if not exists payments (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  listing_id uuid references listings(id) on delete cascade not null,
+  stripe_session_id text not null,
+  amount numeric not null,
+  purpose text not null,
+  status text not null default 'pending',
+  created_at timestamptz default now()
+);
+
+-- Storage bucket for listing photos (run once)
+insert into storage.buckets (id, name, public)
+values ('listing-photos', 'listing-photos', true)
+on conflict (id) do nothing;
+
+-- Row Level Security
+alter table profiles enable row level security;
+alter table listings enable row level security;
+alter table listing_photos enable row level security;
+alter table saved_listings enable row level security;
+alter table conversations enable row level security;
+alter table messages enable row level security;
+alter table payments enable row level security;
+
+-- Profiles: users can read all, but only edit their own
+create policy "Profiles are viewable by everyone" on profiles for select using (true);
+create policy "Users can insert their own profile" on profiles for insert with check (auth.uid() = id);
+create policy "Users can update their own profile" on profiles for update using (auth.uid() = id);
+
+-- Listings: anyone can view active listings; only the seller can modify their own
+create policy "Active listings are viewable by everyone" on listings for select using (true);
+create policy "Sellers can insert their own listings" on listings for insert with check (auth.uid() = seller_id);
+create policy "Sellers can update their own listings" on listings for update using (auth.uid() = seller_id);
+create policy "Sellers can delete their own listings" on listings for delete using (auth.uid() = seller_id);
+
+-- Listing photos: viewable by everyone, insertable by the listing's seller
+create policy "Listing photos are viewable by everyone" on listing_photos for select using (true);
+create policy "Sellers can add photos to their listings" on listing_photos for insert with check (
+  exists (select 1 from listings where listings.id = listing_id and listings.seller_id = auth.uid())
+);
+
+-- Saved listings: users manage only their own saves
+create policy "Users can view their own saved listings" on saved_listings for select using (auth.uid() = user_id);
+create policy "Users can save listings" on saved_listings for insert with check (auth.uid() = user_id);
+create policy "Users can unsave listings" on saved_listings for delete using (auth.uid() = user_id);
+
+-- Conversations: visible to buyer or seller involved
+create policy "Participants can view their conversations" on conversations for select using (
+  auth.uid() = buyer_id or auth.uid() = seller_id
+);
+create policy "Buyers can start conversations" on conversations for insert with check (auth.uid() = buyer_id);
+
+-- Messages: visible to conversation participants
+create policy "Participants can view messages" on messages for select using (
+  exists (
+    select 1 from conversations
+    where conversations.id = conversation_id
+      and (conversations.buyer_id = auth.uid() or conversations.seller_id = auth.uid())
+  )
+);
+create policy "Participants can send messages" on messages for insert with check (
+  auth.uid() = sender_id and exists (
+    select 1 from conversations
+    where conversations.id = conversation_id
+      and (conversations.buyer_id = auth.uid() or conversations.seller_id = auth.uid())
+  )
+);
+
+-- Payments: users can view their own payment records
+create policy "Users can view their own payments" on payments for select using (auth.uid() = user_id);
+create policy "Users can insert their own payments" on payments for insert with check (auth.uid() = user_id);
