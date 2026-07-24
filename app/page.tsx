@@ -1,77 +1,74 @@
-import { createClient } from '@/lib/supabaseServer';
-import CarCard from '@/components/CarCard';
-import Filters from '@/components/Filters';
-import SortSelect from '@/components/SortSelect';
-import type { Listing } from '@/lib/types';
+'use client';
 
-export const dynamic = 'force-dynamic';
+import { useState } from 'react';
+import Link from 'next/link';
+import { createClient } from '@/lib/supabaseClient';
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) {
+export default function SignupPage() {
   const supabase = createClient();
-  let query = supabase
-    .from('listings')
-    .select('*, listing_photos(storage_path, sort_order)')
-    .eq('status', 'active');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  if (searchParams.body) query = query.eq('body_type', searchParams.body);
-  if (searchParams.maxPrice) query = query.lte('price', Number(searchParams.maxPrice));
-  if (searchParams.maxMileage) query = query.lte('mileage', Number(searchParams.maxMileage));
-  if (searchParams.minYear) query = query.gte('year', Number(searchParams.minYear));
-  if (searchParams.q) {
-    query = query.or(`make.ilike.%${searchParams.q}%,model.ilike.%${searchParams.q}%`);
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName } },
+    });
+    if (signUpError) { setError(signUpError.message); setLoading(false); return; }
+    if (data.user) {
+      // Create the matching profile row.
+      await supabase.from('profiles').insert({ id: data.user.id, full_name: fullName });
+    }
+    setLoading(false);
+    setDone(true);
   }
 
-  switch (searchParams.sort) {
-    case 'price-asc': query = query.order('price', { ascending: true }); break;
-    case 'price-desc': query = query.order('price', { ascending: false }); break;
-    case 'mileage-asc': query = query.order('mileage', { ascending: true }); break;
-    case 'year-desc': query = query.order('year', { ascending: false }); break;
-    default: query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
+  if (done) {
+    return (
+      <div className="max-w-sm mx-auto px-6 py-16 text-center">
+        <h1 className="font-display text-4xl mb-3">Check your email</h1>
+        <p className="text-inkSoft text-sm">
+          We sent a confirmation link to <b>{email}</b>. Click it, then come back and log in.
+        </p>
+      </div>
+    );
   }
-
-  const { data: listings, error } = await query;
 
   return (
-    <>
-      <section className="bg-concrete border-b border-chrome px-6 py-14">
-        <div className="max-w-6xl mx-auto">
-          <p className="font-mono text-xs uppercase tracking-widest text-green font-semibold flex items-center gap-2 before:content-[''] before:w-5 before:h-0.5 before:bg-amber">
-            {listings?.length ?? 0} vehicles listed
-          </p>
-          <h1 className="font-display text-6xl sm:text-7xl leading-none my-2">Find your next drive.</h1>
-          <p className="max-w-lg text-inkSoft text-sm">
-            No haggling games, no hidden fees — real listings from real sellers, with the full window sticker on every car.
-          </p>
+    <div className="max-w-sm mx-auto px-6 py-16">
+      <h1 className="font-display text-4xl mb-6">Create your account</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold uppercase text-inkSoft mb-1">Full name</label>
+          <input required value={fullName} onChange={(e) => setFullName(e.target.value)}
+            className="w-full border border-chrome px-3 py-2" />
         </div>
-      </section>
-      <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-7">
-        <Filters />
-        <main>
-          <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-            <p className="text-sm text-inkSoft"><b className="text-ink">{listings?.length ?? 0}</b> vehicles match</p>
-            <SortSelect />
-          </div>
-          {error && (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-200 p-3 mb-4">
-              Couldn&apos;t load listings: {error.message}. Have you run supabase/schema.sql yet?
-            </p>
-          )}
-          {listings && listings.length > 0 ? (
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-              {(listings as Listing[]).map((l) => <CarCard key={l.id} listing={l} />)}
-            </div>
-          ) : (
-            <div className="text-center py-16 text-inkSoft">
-              <p className="font-display text-3xl text-ink mb-2">No matches in the lot</p>
-              <p>Try widening your filters, or be the first to list a car.</p>
-            </div>
-          )}
-        </main>
-      </div>
-    </>
+        <div>
+          <label className="block text-xs font-semibold uppercase text-inkSoft mb-1">Email</label>
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+            className="w-full border border-chrome px-3 py-2" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase text-inkSoft mb-1">Password</label>
+          <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)}
+            className="w-full border border-chrome px-3 py-2" />
+        </div>
+        {error && <p className="text-sm text-red-700">{error}</p>}
+        <button disabled={loading} className="w-full bg-amber text-ink font-bold py-2.5 disabled:opacity-50">
+          {loading ? 'Creating account…' : 'Sign up'}
+        </button>
+      </form>
+      <p className="text-sm text-inkSoft mt-4">
+        Already have an account? <Link href="/login" className="underline text-ink">Log in</Link>
+      </p>
+    </div>
   );
 }
