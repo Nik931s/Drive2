@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background: #EDEAE3;
+  color: #1C1B18;
+}
+
+::selection {
+  background: #F4A81D;
+  color: #1C1B18;
+}
+
+.spec-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px dotted #B8BCC0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+.spec-row span:first-child { color: #55524A; }
+.spec-row span:last-child { font-weight: 600; }
