@@ -1,77 +1,61 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabaseServer';
-import CarCard from '@/components/CarCard';
-import Filters from '@/components/Filters';
-import SortSelect from '@/components/SortSelect';
-import type { Listing } from '@/lib/types';
-
-export const dynamic = 'force-dynamic';
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) {
+ 
+export default async function LandingPage() {
   const supabase = createClient();
-  let query = supabase
-    .from('listings')
-    .select('*, listing_photos(storage_path, sort_order)')
-    .eq('status', 'active');
-
-  if (searchParams.body) query = query.eq('body_type', searchParams.body);
-  if (searchParams.maxPrice) query = query.lte('price', Number(searchParams.maxPrice));
-  if (searchParams.maxMileage) query = query.lte('mileage', Number(searchParams.maxMileage));
-  if (searchParams.minYear) query = query.gte('year', Number(searchParams.minYear));
-  if (searchParams.q) {
-    query = query.or(`make.ilike.%${searchParams.q}%,model.ilike.%${searchParams.q}%`);
-  }
-
-  switch (searchParams.sort) {
-    case 'price-asc': query = query.order('price', { ascending: true }); break;
-    case 'price-desc': query = query.order('price', { ascending: false }); break;
-    case 'mileage-asc': query = query.order('mileage', { ascending: true }); break;
-    case 'year-desc': query = query.order('year', { ascending: false }); break;
-    default: query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
-  }
-
-  const { data: listings, error } = await query;
-
+  const { data: { user } } = await supabase.auth.getUser();
+ 
   return (
-    <>
-      <section className="bg-concrete border-b border-chrome px-6 py-14">
-        <div className="max-w-6xl mx-auto">
-          <p className="font-mono text-xs uppercase tracking-widest text-green font-semibold flex items-center gap-2 before:content-[''] before:w-5 before:h-0.5 before:bg-amber">
-            {listings?.length ?? 0} vehicles listed
-          </p>
-          <h1 className="font-display text-6xl sm:text-7xl leading-none my-2">Find your next drive.</h1>
-          <p className="max-w-lg text-inkSoft text-sm">
-            No haggling games, no hidden fees — real listings from real sellers, with the full window sticker on every car.
-          </p>
-        </div>
-      </section>
-      <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-7">
-        <Filters />
-        <main>
-          <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-            <p className="text-sm text-inkSoft"><b className="text-ink">{listings?.length ?? 0}</b> vehicles match</p>
-            <SortSelect />
-          </div>
-          {error && (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-200 p-3 mb-4">
-              Couldn&apos;t load listings: {error.message}. Have you run supabase/schema.sql yet?
-            </p>
-          )}
-          {listings && listings.length > 0 ? (
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-              {(listings as Listing[]).map((l) => <CarCard key={l.id} listing={l} />)}
-            </div>
+    <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-concrete px-6">
+      <div className="max-w-xl w-full text-center">
+        <h1 className="font-display text-7xl sm:text-8xl leading-none mb-3">
+          DRIVE<span className="text-amber">·</span>WAY
+        </h1>
+        <p className="text-inkSoft text-sm mb-10 max-w-sm mx-auto">
+          A real, working car marketplace. No haggling games, no hidden fees —
+          just real listings from real sellers.
+        </p>
+ 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-sm mx-auto">
+          <Link
+            href="/browse"
+            className="bg-ink text-concrete font-bold text-sm py-3.5 hover:bg-inkSoft transition"
+          >
+            Browse cars
+          </Link>
+          <Link
+            href="/sell"
+            className="bg-amber text-ink font-bold text-sm py-3.5 hover:bg-amberDeep transition"
+          >
+            Sell a car
+          </Link>
+ 
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="col-span-1 sm:col-span-2 border border-chrome text-ink font-bold text-sm py-3.5 hover:border-ink transition"
+            >
+              Go to your dashboard
+            </Link>
           ) : (
-            <div className="text-center py-16 text-inkSoft">
-              <p className="font-display text-3xl text-ink mb-2">No matches in the lot</p>
-              <p>Try widening your filters, or be the first to list a car.</p>
-            </div>
+            <>
+              <Link
+                href="/login"
+                className="border border-chrome text-ink font-bold text-sm py-3.5 hover:border-ink transition"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="border border-chrome text-ink font-bold text-sm py-3.5 hover:border-ink transition"
+              >
+                Sign up
+              </Link>
+            </>
           )}
-        </main>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
+ 
