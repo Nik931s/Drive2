@@ -1,12 +1,21 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Listing } from '@/lib/types';
-
+import SaveButton from '@/components/SaveButton';
+ 
 function fmtMoney(n: number) {
   return '$' + Math.round(n).toLocaleString();
 }
-
-export default function CarCard({ listing, saved }: { listing: Listing; saved?: boolean }) {
+ 
+export default function CarCard({
+  listing,
+  saved,
+  showSaveButton,
+}: {
+  listing: Listing;
+  saved?: boolean;
+  showSaveButton?: boolean;
+}) {
   const cover = listing.listing_photos?.sort((a, b) => a.sort_order - b.sort_order)[0];
   return (
     <div className="bg-white border border-chrome flex flex-col hover:-translate-y-1 hover:shadow-lg transition">
@@ -29,6 +38,11 @@ export default function CarCard({ listing, saved }: { listing: Listing; saved?: 
             FEATURED
           </div>
         )}
+        {showSaveButton && (
+          <div className="absolute bottom-2 right-2">
+            <SaveButton listingId={listing.id} initialSaved={!!saved} />
+          </div>
+        )}
       </div>
       <div className="p-3 flex-1 flex flex-col">
         <p className="font-bold text-sm">{listing.year} {listing.make} {listing.model}</p>
@@ -47,3 +61,4 @@ export default function CarCard({ listing, saved }: { listing: Listing; saved?: 
     </div>
   );
 }
+ 
