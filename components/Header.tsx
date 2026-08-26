@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseServer';
-
+ 
 export default async function Header() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -11,7 +11,7 @@ export default async function Header() {
           DRIVE<span className="text-amber">·</span>WAY
         </Link>
         <nav className="hidden sm:flex items-center gap-5 text-sm font-medium">
-          <Link href="/" className="hover:text-amber">Browse</Link>
+          <Link href="/browse" className="hover:text-amber">Browse</Link>
           <Link href="/sell" className="hover:text-amber">Sell</Link>
           {user && <Link href="/dashboard" className="hover:text-amber">Dashboard</Link>}
         </nav>
@@ -37,3 +37,4 @@ export default async function Header() {
     </header>
   );
 }
+ 
