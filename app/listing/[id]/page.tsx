@@ -1,3 +1,5 @@
+mkdir -p /home/claude/driveway/app/listing/'[id]'
+cat > "/home/claude/driveway/app/listing/[id]/page.tsx" << 'ENDOFFILE'
 import { createClient } from '@/lib/supabaseServer';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
@@ -65,7 +67,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         <div>
           <div className="border border-dashed border-inkSoft p-4 font-mono text-xs">
             <p className="uppercase tracking-widest text-inkSoft text-[10px] border-b border-chrome pb-2 mb-2">Window sticker</p>
-            <div className="spec-row"><span>Price</span><span>${Number(listing.price).toLocaleString()}</span></div>
+            <div className="spec-row"><span>Price</span><span>£{Number(listing.price).toLocaleString()}</span></div>
             <div className="spec-row"><span>Mileage</span><span>{listing.mileage.toLocaleString()} mi</span></div>
             <div className="spec-row"><span>Body style</span><span>{listing.body_type}</span></div>
             <div className="spec-row"><span>Exterior</span><span>{listing.color || '—'}</span></div>
