@@ -1,5 +1,3 @@
-mkdir -p /home/claude/driveway/app/listing/'[id]'
-cat > "/home/claude/driveway/app/listing/[id]/page.tsx" << 'ENDOFFILE'
 import { createClient } from '@/lib/supabaseServer';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
