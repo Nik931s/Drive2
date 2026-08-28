@@ -2,11 +2,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Listing } from '@/lib/types';
 import SaveButton from '@/components/SaveButton';
- 
+
 function fmtMoney(n: number) {
-  return '$' + Math.round(n).toLocaleString();
+  return '£' + Math.round(n).toLocaleString();
 }
- 
+
 export default function CarCard({
   listing,
   saved,
@@ -61,4 +61,3 @@ export default function CarCard({
     </div>
   );
 }
- 
