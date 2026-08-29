@@ -1,8 +1,9 @@
 export type ListingPhoto = {
+  id?: string;
   storage_path: string;
   sort_order: number;
 };
-
+ 
 export type Listing = {
   id: string;
   seller_id: string;
@@ -24,3 +25,4 @@ export type Listing = {
   listing_photos?: ListingPhoto[];
   profiles?: { full_name: string | null };
 };
+ 
