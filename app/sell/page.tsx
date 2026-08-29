@@ -1,11 +1,15 @@
 'use client';
-
+ 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
-
+ 
 const BODY_TYPES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Hatchback', 'EV', 'Van', 'Convertible'];
-
+ 
+function preventScrollChange(e: React.WheelEvent<HTMLInputElement>) {
+  (e.target as HTMLInputElement).blur();
+}
+ 
 export default function SellPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -17,23 +21,23 @@ export default function SellPage() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+ 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
   }
-
+ 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
+ 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setError('Please log in before listing a car.');
       setLoading(false);
       return;
     }
-
+ 
     const { data: listing, error: insertError } = await supabase
       .from('listings')
       .insert({
@@ -53,13 +57,13 @@ export default function SellPage() {
       })
       .select()
       .single();
-
+ 
     if (insertError || !listing) {
       setError(insertError?.message || 'Could not create listing.');
       setLoading(false);
       return;
     }
-
+ 
     // Upload photos, if any, to Supabase Storage under a per-user folder.
     for (let i = 0; i < photos.length; i++) {
       const file = photos[i];
@@ -74,11 +78,11 @@ export default function SellPage() {
         });
       }
     }
-
+ 
     setLoading(false);
     router.push(`/listing/${listing.id}`);
   }
-
+ 
   return (
     <div className="max-w-xl mx-auto px-6 py-12">
       <h1 className="font-display text-5xl mb-6">List your car</h1>
@@ -86,9 +90,40 @@ export default function SellPage() {
         <div className="grid grid-cols-2 gap-4">
           <Field label="Make"><input required value={form.make} onChange={(e) => update('make', e.target.value)} className="input" /></Field>
           <Field label="Model"><input required value={form.model} onChange={(e) => update('model', e.target.value)} className="input" /></Field>
-          <Field label="Year"><input required type="number" min={1980} max={2026} value={form.year} onChange={(e) => update('year', e.target.value)} className="input" /></Field>
-          <Field label="Price ($)"><input required type="number" min={0} value={form.price} onChange={(e) => update('price', e.target.value)} className="input" /></Field>
-          <Field label="Mileage"><input required type="number" min={0} value={form.mileage} onChange={(e) => update('mileage', e.target.value)} className="input" /></Field>
+          <Field label="Year">
+            <input
+              required
+              type="number"
+              min={1980}
+              max={2026}
+              value={form.year}
+              onChange={(e) => update('year', e.target.value)}
+              onWheel={preventScrollChange}
+              className="input"
+            />
+          </Field>
+          <Field label="Price (£)">
+            <input
+              required
+              type="number"
+              min={0}
+              value={form.price}
+              onChange={(e) => update('price', e.target.value)}
+              onWheel={preventScrollChange}
+              className="input"
+            />
+          </Field>
+          <Field label="Mileage">
+            <input
+              required
+              type="number"
+              min={0}
+              value={form.mileage}
+              onChange={(e) => update('mileage', e.target.value)}
+              onWheel={preventScrollChange}
+              className="input"
+            />
+          </Field>
           <Field label="Color"><input value={form.color} onChange={(e) => update('color', e.target.value)} className="input" /></Field>
           <Field label="Body type">
             <select value={form.body_type} onChange={(e) => update('body_type', e.target.value)} className="input">
@@ -107,22 +142,22 @@ export default function SellPage() {
           </Field>
           <Field label="VIN (optional)"><input value={form.vin} onChange={(e) => update('vin', e.target.value)} className="input" /></Field>
         </div>
-
+ 
         <Field label="Description">
           <textarea rows={4} value={form.description} onChange={(e) => update('description', e.target.value)} className="input" />
         </Field>
-
+ 
         <Field label="Photos">
           <input type="file" accept="image/*" multiple onChange={(e) => setPhotos(Array.from(e.target.files || []))} />
         </Field>
-
+ 
         {error && <p className="text-sm text-red-700">{error}</p>}
-
+ 
         <button disabled={loading} className="w-full bg-amber text-ink font-bold py-3 disabled:opacity-50">
           {loading ? 'Publishing…' : 'Publish listing'}
         </button>
       </form>
-
+ 
       <style jsx>{`
         .input {
           width: 100%;
@@ -134,7 +169,7 @@ export default function SellPage() {
     </div>
   );
 }
-
+ 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
