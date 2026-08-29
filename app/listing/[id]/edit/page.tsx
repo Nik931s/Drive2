@@ -14,7 +14,7 @@ export default async function EditListingPage({ params }: { params: { id: string
  
   const { data: listing } = await supabase
     .from('listings')
-    .select('*')
+    .select('*, listing_photos(id, storage_path, sort_order)')
     .eq('id', params.id)
     .single();
  
@@ -24,10 +24,14 @@ export default async function EditListingPage({ params }: { params: { id: string
     redirect(`/listing/${params.id}`);
   }
  
+  const photos = (listing.listing_photos || []).sort(
+    (a: any, b: any) => a.sort_order - b.sort_order
+  );
+ 
   return (
     <div className="max-w-xl mx-auto px-6 py-12">
       <h1 className="font-display text-5xl mb-6">Edit listing</h1>
-      <EditListingForm listing={listing} />
+      <EditListingForm listing={listing} photos={photos} />
     </div>
   );
 }
