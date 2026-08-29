@@ -61,7 +61,9 @@ export default async function DashboardPage() {
         </div>
         {myListings && myListings.length > 0 ? (
           <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-            {(myListings as Listing[]).map((l) => <CarCard key={l.id} listing={l} />)}
+            {(myListings as Listing[]).map((l) => (
+              <CarCard key={l.id} listing={l} ownerActions />
+            ))}
           </div>
         ) : (
           <p className="text-inkSoft text-sm">You haven&apos;t listed any cars yet.</p>
@@ -72,7 +74,9 @@ export default async function DashboardPage() {
         <h2 className="font-display text-2xl mb-3">Saved listings</h2>
         {savedListings.length > 0 ? (
           <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-            {(savedListings as Listing[]).map((l) => <CarCard key={l.id} listing={l} />)}
+            {(savedListings as Listing[]).map((l) => (
+              <CarCard key={l.id} listing={l} showSaveButton saved />
+            ))}
           </div>
         ) : (
           <p className="text-inkSoft text-sm">Nothing saved yet. Browse listings and tap Save to bookmark a car.</p>
@@ -108,4 +112,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
- 
