@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Listing } from '@/lib/types';
 import SaveButton from '@/components/SaveButton';
+import DeleteListingButton from '@/components/DeleteListingButton';
 
 function fmtMoney(n: number) {
   return '£' + Math.round(n).toLocaleString();
@@ -11,10 +12,12 @@ export default function CarCard({
   listing,
   saved,
   showSaveButton,
+  ownerActions,
 }: {
   listing: Listing;
   saved?: boolean;
   showSaveButton?: boolean;
+  ownerActions?: boolean;
 }) {
   const cover = listing.listing_photos?.sort((a, b) => a.sort_order - b.sort_order)[0];
   return (
@@ -38,7 +41,7 @@ export default function CarCard({
             FEATURED
           </div>
         )}
-        {showSaveButton && (
+        {showSaveButton && !ownerActions && (
           <div className="absolute bottom-2 right-2">
             <SaveButton listingId={listing.id} initialSaved={!!saved} />
           </div>
@@ -57,6 +60,17 @@ export default function CarCard({
         >
           View window sticker
         </Link>
+        {ownerActions && (
+          <div className="mt-2 flex items-center gap-2">
+            <Link
+              href={`/listing/${listing.id}/edit`}
+              className="flex-1 text-center text-xs font-bold px-3 py-2 border border-chrome hover:border-ink"
+            >
+              Edit
+            </Link>
+            <DeleteListingButton listingId={listing.id} />
+          </div>
+        )}
       </div>
     </div>
   );
