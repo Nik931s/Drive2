@@ -1,17 +1,17 @@
 'use client';
-
+ 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useState } from 'react';
-
-const BODY_TYPES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Hatchback', 'EV', 'Van', 'Convertible'];
-
-type Option = { value: string; label: string };
+ 
+type Option = { value: string; label: string; count: number };
 type MakeOption = Option & { models: Option[] };
-
+ 
 export default function Filters({
   bounds,
   makes,
   allModels,
+  bodyTypes,
+  totalCount,
 }: {
   bounds: {
     minPrice: number; maxPrice: number;
@@ -20,11 +20,13 @@ export default function Filters({
   };
   makes: MakeOption[];
   allModels: Option[];
+  bodyTypes: Option[];
+  totalCount: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
+ 
   const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
   const [minMileage, setMinMileage] = useState(searchParams.get('minMileage') || '');
@@ -35,10 +37,10 @@ export default function Filters({
   const [make, setMake] = useState(searchParams.get('make') || 'all');
   const [model, setModel] = useState(searchParams.get('model') || 'all');
   const [q, setQ] = useState(searchParams.get('q') || '');
-
+ 
   const modelOptions: Option[] =
     make === 'all' ? allModels : (makes.find((m) => m.value === make)?.models || []);
-
+ 
   function apply(overrides: Record<string, string> = {}) {
     const params = new URLSearchParams();
     const values: Record<string, string> = {
@@ -50,7 +52,7 @@ export default function Filters({
     });
     router.push(`${pathname}?${params.toString()}`);
   }
-
+ 
   function reset() {
     setMinPrice(''); setMaxPrice('');
     setMinMileage(''); setMaxMileage('');
@@ -58,16 +60,17 @@ export default function Filters({
     setBody('all'); setMake('all'); setModel('all'); setQ('');
     router.push(pathname);
   }
-
+ 
   return (
     <aside className="bg-white border border-chrome p-4 h-fit sticky top-24">
-      <h3 className="font-display text-lg mb-3 flex justify-between items-center">
+      <h3 className="font-display text-lg mb-1 flex justify-between items-center">
         Filters
         <button className="text-[11px] font-mono text-inkSoft underline" onClick={reset}>
           Reset
         </button>
       </h3>
-
+      <p className="text-[11px] font-mono text-inkSoft mb-3">{totalCount} total vehicles listed</p>
+ 
       <div className="mb-4">
         <label className="block text-[11px] font-semibold uppercase tracking-wide text-inkSoft mb-2">Search</label>
         <input
@@ -78,7 +81,7 @@ export default function Filters({
           className="w-full border border-chrome px-2 py-1.5 text-sm"
         />
       </div>
-
+ 
       <div className="mb-4">
         <label className="block text-[11px] font-semibold uppercase tracking-wide text-inkSoft mb-2">Make</label>
         <select
@@ -90,11 +93,13 @@ export default function Filters({
           }}
           className="w-full border border-chrome px-2 py-1.5 text-sm"
         >
-          <option value="all">All makes</option>
-          {makes.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+          <option value="all">All makes ({totalCount})</option>
+          {makes.map((m) => (
+            <option key={m.value} value={m.value}>{m.label} ({m.count})</option>
+          ))}
         </select>
       </div>
-
+ 
       <div className="mb-4">
         <label className="block text-[11px] font-semibold uppercase tracking-wide text-inkSoft mb-2">Model</label>
         <select
@@ -103,18 +108,22 @@ export default function Filters({
           className="w-full border border-chrome px-2 py-1.5 text-sm"
         >
           <option value="all">All models</option>
-          {modelOptions.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+          {modelOptions.map((m) => (
+            <option key={m.value} value={m.value}>{m.label} ({m.count})</option>
+          ))}
         </select>
       </div>
-
+ 
       <div className="mb-4">
         <label className="block text-[11px] font-semibold uppercase tracking-wide text-inkSoft mb-2">Body type</label>
         <select value={body} onChange={(e) => { setBody(e.target.value); apply({ body: e.target.value }); }} className="w-full border border-chrome px-2 py-1.5 text-sm">
-          <option value="all">All</option>
-          {BODY_TYPES.map((b) => <option key={b} value={b}>{b}</option>)}
+          <option value="all">All ({totalCount})</option>
+          {bodyTypes.map((b) => (
+            <option key={b.value} value={b.value}>{b.label} ({b.count})</option>
+          ))}
         </select>
       </div>
-
+ 
       <div className="mb-4">
         <label className="block text-[11px] font-semibold uppercase tracking-wide text-inkSoft mb-2">
           Price (£{bounds.minPrice.toLocaleString()} – £{bounds.maxPrice.toLocaleString()})
@@ -139,7 +148,7 @@ export default function Filters({
           />
         </div>
       </div>
-
+ 
       <div className="mb-4">
         <label className="block text-[11px] font-semibold uppercase tracking-wide text-inkSoft mb-2">
           Mileage ({bounds.minMileage.toLocaleString()} – {bounds.maxMileage.toLocaleString()} mi)
@@ -164,7 +173,7 @@ export default function Filters({
           />
         </div>
       </div>
-
+ 
       <div className="mb-2">
         <label className="block text-[11px] font-semibold uppercase tracking-wide text-inkSoft mb-2">
           Year ({bounds.minYear} – {bounds.maxYear})
@@ -192,3 +201,4 @@ export default function Filters({
     </aside>
   );
 }
+ 
