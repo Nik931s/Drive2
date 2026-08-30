@@ -3,9 +3,9 @@ import CarCard from '@/components/CarCard';
 import Filters from '@/components/Filters';
 import SortSelect from '@/components/SortSelect';
 import type { Listing } from '@/lib/types';
-
+ 
 export const dynamic = 'force-dynamic';
-
+ 
 function titleCase(s: string) {
   return s
     .trim()
@@ -13,25 +13,30 @@ function titleCase(s: string) {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
 }
-
+ 
+const BODY_TYPES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Hatchback', 'EV', 'Van', 'Convertible'];
+ 
 export default async function BrowsePage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) {
   const supabase = createClient();
-
+ 
   // Lightweight query across ALL active listings (unfiltered) purely to work out
-  // the real min/max bounds and the available make/model options for the filter UI.
+  // bounds, make/model options, and counts for the filter UI.
   const { data: aggregateRows } = await supabase
     .from('listings')
-    .select('price, mileage, year, make, model')
+    .select('price, mileage, year, make, model, body_type')
     .eq('status', 'active');
-
-  const prices = (aggregateRows || []).map((r) => r.price).filter((n) => n != null);
-  const mileages = (aggregateRows || []).map((r) => r.mileage).filter((n) => n != null);
-  const years = (aggregateRows || []).map((r) => r.year).filter((n) => n != null);
-
+ 
+  const rows = aggregateRows || [];
+  const totalCount = rows.length;
+ 
+  const prices = rows.map((r) => r.price).filter((n) => n != null);
+  const mileages = rows.map((r) => r.mileage).filter((n) => n != null);
+  const years = rows.map((r) => r.year).filter((n) => n != null);
+ 
   const bounds = {
     minPrice: prices.length ? Math.min(...prices) : 0,
     maxPrice: prices.length ? Math.max(...prices) : 90000,
@@ -40,46 +45,60 @@ export default async function BrowsePage({
     minYear: years.length ? Math.min(...years) : 2000,
     maxYear: years.length ? Math.max(...years) : new Date().getFullYear(),
   };
-
+ 
   // Build a deduplicated make -> models map, case-insensitively, so "ford" and
-  // "Ford" collapse into a single filter option.
-  const makeMap = new Map<string, { label: string; models: Map<string, string> }>();
-  const allModelsMap = new Map<string, string>();
-
-  (aggregateRows || []).forEach((row) => {
+  // "Ford" collapse into a single filter option, along with counts.
+  const makeMap = new Map<string, { label: string; count: number; models: Map<string, { label: string; count: number }> }>();
+  const allModelsMap = new Map<string, { label: string; count: number }>();
+  const bodyTypeCounts = new Map<string, number>();
+ 
+  rows.forEach((row) => {
+    if (row.body_type) {
+      bodyTypeCounts.set(row.body_type, (bodyTypeCounts.get(row.body_type) || 0) + 1);
+    }
     if (!row.make) return;
     const makeKey = row.make.trim().toLowerCase();
     if (!makeMap.has(makeKey)) {
-      makeMap.set(makeKey, { label: titleCase(row.make), models: new Map() });
+      makeMap.set(makeKey, { label: titleCase(row.make), count: 0, models: new Map() });
     }
+    const makeEntry = makeMap.get(makeKey)!;
+    makeEntry.count += 1;
+ 
     if (row.model) {
       const modelKey = row.model.trim().toLowerCase();
       const modelLabel = titleCase(row.model);
-      makeMap.get(makeKey)!.models.set(modelKey, modelLabel);
-      allModelsMap.set(modelKey, modelLabel);
+ 
+      const existingInMake = makeEntry.models.get(modelKey);
+      makeEntry.models.set(modelKey, { label: modelLabel, count: (existingInMake?.count || 0) + 1 });
+ 
+      const existingGlobal = allModelsMap.get(modelKey);
+      allModelsMap.set(modelKey, { label: modelLabel, count: (existingGlobal?.count || 0) + 1 });
     }
   });
-
+ 
   const makes = Array.from(makeMap.entries())
-    .map(([value, { label, models }]) => ({
+    .map(([value, { label, count, models }]) => ({
       value,
       label,
+      count,
       models: Array.from(models.entries())
-        .map(([mvalue, mlabel]) => ({ value: mvalue, label: mlabel }))
+        .map(([mvalue, { label: mlabel, count: mcount }]) => ({ value: mvalue, label: mlabel, count: mcount }))
         .sort((a, b) => a.label.localeCompare(b.label)),
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
-
+ 
   const allModels = Array.from(allModelsMap.entries())
-    .map(([value, label]) => ({ value, label }))
+    .map(([value, { label, count }]) => ({ value, label, count }))
     .sort((a, b) => a.label.localeCompare(b.label));
-
+ 
+  const bodyTypes = BODY_TYPES.map((b) => ({ value: b, label: b, count: bodyTypeCounts.get(b) || 0 }));
+ 
   // Main, filtered query.
   let query = supabase
     .from('listings')
     .select('*, listing_photos(storage_path, sort_order)')
     .eq('status', 'active');
-
+ 
   if (searchParams.body) query = query.eq('body_type', searchParams.body);
   if (searchParams.make) query = query.ilike('make', searchParams.make);
   if (searchParams.model) query = query.ilike('model', searchParams.model);
@@ -92,7 +111,7 @@ export default async function BrowsePage({
   if (searchParams.q) {
     query = query.or(`make.ilike.%${searchParams.q}%,model.ilike.%${searchParams.q}%`);
   }
-
+ 
   switch (searchParams.sort) {
     case 'price-asc': query = query.order('price', { ascending: true }); break;
     case 'price-desc': query = query.order('price', { ascending: false }); break;
@@ -100,9 +119,9 @@ export default async function BrowsePage({
     case 'year-desc': query = query.order('year', { ascending: false }); break;
     default: query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
   }
-
+ 
   const { data: listings, error } = await query;
-
+ 
   const { data: { user } } = await supabase.auth.getUser();
   let savedIds = new Set<string>();
   if (user && listings && listings.length > 0) {
@@ -113,13 +132,13 @@ export default async function BrowsePage({
       .in('listing_id', listings.map((l) => l.id));
     savedIds = new Set((savedRows || []).map((r) => r.listing_id));
   }
-
+ 
   return (
     <>
       <section className="bg-concrete border-b border-chrome px-6 py-14">
         <div className="max-w-6xl mx-auto">
           <p className="font-mono text-xs uppercase tracking-widest text-green font-semibold flex items-center gap-2 before:content-[''] before:w-5 before:h-0.5 before:bg-amber">
-            {listings?.length ?? 0} vehicles listed
+            {totalCount} vehicles listed
           </p>
           <h1 className="font-display text-6xl sm:text-7xl leading-none my-2">Find your next drive.</h1>
           <p className="max-w-lg text-inkSoft text-sm">
@@ -128,7 +147,7 @@ export default async function BrowsePage({
         </div>
       </section>
       <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-7">
-        <Filters bounds={bounds} makes={makes} allModels={allModels} />
+        <Filters bounds={bounds} makes={makes} allModels={allModels} bodyTypes={bodyTypes} totalCount={totalCount} />
         <main>
           <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
             <p className="text-sm text-inkSoft"><b className="text-ink">{listings?.length ?? 0}</b> vehicles match</p>
@@ -161,3 +180,4 @@ export default async function BrowsePage({
     </>
   );
 }
+ 
