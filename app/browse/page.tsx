@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabaseServer';
 import CarCard from '@/components/CarCard';
 import Filters from '@/components/Filters';
@@ -5,6 +6,8 @@ import SortSelect from '@/components/SortSelect';
 import type { Listing } from '@/lib/types';
  
 export const dynamic = 'force-dynamic';
+ 
+const PAGE_SIZE = 24;
  
 function titleCase(s: string) {
   return s
@@ -15,6 +18,14 @@ function titleCase(s: string) {
 }
  
 const BODY_TYPES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Hatchback', 'EV', 'Van', 'Convertible'];
+ 
+function buildHref(searchParams: { [key: string]: string | undefined }, overrides: Record<string, string>) {
+  const params = new URLSearchParams();
+  Object.entries({ ...searchParams, ...overrides }).forEach(([k, v]) => {
+    if (v) params.set(k, v);
+  });
+  return `/browse?${params.toString()}`;
+}
  
 export default async function BrowsePage({
   searchParams,
@@ -46,8 +57,6 @@ export default async function BrowsePage({
     maxYear: years.length ? Math.max(...years) : new Date().getFullYear(),
   };
  
-  // Build a deduplicated make -> models map, case-insensitively, so "ford" and
-  // "Ford" collapse into a single filter option, along with counts.
   const makeMap = new Map<string, { label: string; count: number; models: Map<string, { label: string; count: number }> }>();
   const allModelsMap = new Map<string, { label: string; count: number }>();
   const bodyTypeCounts = new Map<string, number>();
@@ -93,10 +102,14 @@ export default async function BrowsePage({
  
   const bodyTypes = BODY_TYPES.map((b) => ({ value: b, label: b, count: bodyTypeCounts.get(b) || 0 }));
  
-  // Main, filtered query.
+  // Main, filtered, paginated query.
+  const page = Math.max(1, Number(searchParams.page) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+ 
   let query = supabase
     .from('listings')
-    .select('*, listing_photos(storage_path, sort_order)')
+    .select('*, listing_photos(storage_path, sort_order)', { count: 'exact' })
     .eq('status', 'active');
  
   if (searchParams.body) query = query.eq('body_type', searchParams.body);
@@ -120,7 +133,12 @@ export default async function BrowsePage({
     default: query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
   }
  
-  const { data: listings, error } = await query;
+  query = query.range(from, to);
+ 
+  const { data: listings, error, count } = await query;
+ 
+  const totalMatching = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalMatching / PAGE_SIZE));
  
   const { data: { user } } = await supabase.auth.getUser();
   let savedIds = new Set<string>();
@@ -146,11 +164,16 @@ export default async function BrowsePage({
           </p>
         </div>
       </section>
-     <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-7 md:items-start">
+      <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-7 md:items-start">
         <Filters bounds={bounds} makes={makes} allModels={allModels} bodyTypes={bodyTypes} totalCount={totalCount} />
         <main>
           <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-            <p className="text-sm text-inkSoft"><b className="text-ink">{listings?.length ?? 0}</b> vehicles match</p>
+            <p className="text-sm text-inkSoft">
+              <b className="text-ink">{totalMatching}</b> vehicles match
+              {totalMatching > 0 && (
+                <span className="text-inkSoft"> — showing {from + 1}–{Math.min(from + PAGE_SIZE, totalMatching)}</span>
+              )}
+            </p>
             <SortSelect />
           </div>
           {error && (
@@ -159,16 +182,40 @@ export default async function BrowsePage({
             </p>
           )}
           {listings && listings.length > 0 ? (
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-              {(listings as Listing[]).map((l) => (
-                <CarCard
-                  key={l.id}
-                  listing={l}
-                  showSaveButton={!!user}
-                  saved={savedIds.has(l.id)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+                {(listings as Listing[]).map((l) => (
+                  <CarCard
+                    key={l.id}
+                    listing={l}
+                    showSaveButton={!!user}
+                    saved={savedIds.has(l.id)}
+                  />
+                ))}
+              </div>
+ 
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  <Link
+                    href={buildHref(searchParams, { page: String(Math.max(1, page - 1)) })}
+                    aria-disabled={page <= 1}
+                    className={`text-xs font-bold px-3 py-2 border border-chrome ${page <= 1 ? 'pointer-events-none opacity-40' : 'hover:border-ink'}`}
+                  >
+                    ← Prev
+                  </Link>
+                  <span className="text-xs font-mono text-inkSoft px-2">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Link
+                    href={buildHref(searchParams, { page: String(Math.min(totalPages, page + 1)) })}
+                    aria-disabled={page >= totalPages}
+                    className={`text-xs font-bold px-3 py-2 border border-chrome ${page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:border-ink'}`}
+                  >
+                    Next →
+                  </Link>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-16 text-inkSoft">
               <p className="font-display text-3xl text-ink mb-2">No matches in the lot</p>
