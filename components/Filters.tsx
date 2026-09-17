@@ -62,7 +62,7 @@ export default function Filters({
   }
  
   return (
-    <aside className="bg-white border border-chrome p-4 h-fit sticky top-24">
+    <aside className="bg-white border border-chrome p-4 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
       <h3 className="font-display text-lg mb-1 flex justify-between items-center">
         Filters
         <button className="text-[11px] font-mono text-inkSoft underline" onClick={reset}>
