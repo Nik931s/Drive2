@@ -146,7 +146,7 @@ export default async function BrowsePage({
           </p>
         </div>
       </section>
-      <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-7">
+     <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-7 md:items-start">
         <Filters bounds={bounds} makes={makes} allModels={allModels} bodyTypes={bodyTypes} totalCount={totalCount} />
         <main>
           <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
