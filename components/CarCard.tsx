@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type { Listing } from '@/lib/types';
 import SaveButton from '@/components/SaveButton';
 import DeleteListingButton from '@/components/DeleteListingButton';
+import DistanceBadge from '@/components/DistanceBadge';
 
 function fmtMoney(n: number) {
   return '£' + Math.round(n).toLocaleString();
@@ -49,7 +50,10 @@ export default function CarCard({
       </div>
       <div className="p-3 flex-1 flex flex-col">
         <p className="font-bold text-sm">{listing.year} {listing.make} {listing.model}</p>
-        <p className="text-xs text-inkSoft mb-2">{listing.body_type} · {listing.color || '—'} · {listing.drivetrain || '—'}</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-inkSoft">{listing.body_type} · {listing.color || '—'} · {listing.drivetrain || '—'}</p>
+          <DistanceBadge lat={listing.latitude} lng={listing.longitude} />
+        </div>
         <div className="grid grid-cols-2 gap-1 font-mono text-[10.5px] text-inkSoft border border-dashed border-chrome p-2 mt-auto">
           <div><b className="block text-ink text-xs">{listing.mileage.toLocaleString()}</b>miles</div>
           <div><b className="block text-ink text-xs">{listing.transmission}</b>transmission</div>
