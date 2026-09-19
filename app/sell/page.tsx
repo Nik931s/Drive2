@@ -12,7 +12,6 @@ function preventScrollChange(e: React.WheelEvent<HTMLInputElement>) {
   (e.target as HTMLInputElement).blur();
 }
 
-// Free UK postcode lookup — no API key required.
 async function geocodePostcode(postcode: string): Promise<{ lat: number; lng: number } | null> {
   try {
     const res = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode.trim())}`);
@@ -47,8 +46,14 @@ export default function SellPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    if (!form.postcode.trim()) {
+      setError('A postcode is required so buyers can see where the car is located.');
+      return;
+    }
+
+    setLoading(true);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -57,14 +62,11 @@ export default function SellPage() {
       return;
     }
 
-    let latitude: number | null = null;
-    let longitude: number | null = null;
-    if (form.postcode.trim()) {
-      const geo = await geocodePostcode(form.postcode);
-      if (geo) {
-        latitude = geo.lat;
-        longitude = geo.lng;
-      }
+    const geo = await geocodePostcode(form.postcode);
+    if (!geo) {
+      setError(`Couldn't recognise the postcode "${form.postcode}". Please check it and try again.`);
+      setLoading(false);
+      return;
     }
 
     const { data: listing, error: insertError } = await supabase
@@ -87,9 +89,9 @@ export default function SellPage() {
         seats: form.seats ? Number(form.seats) : null,
         engine_size: form.engine_size ? Number(form.engine_size) : null,
         cat_status: form.cat_status,
-        postcode: form.postcode || null,
-        latitude,
-        longitude,
+        postcode: form.postcode,
+        latitude: geo.lat,
+        longitude: geo.lng,
         description: form.description,
       })
       .select()
@@ -177,8 +179,8 @@ export default function SellPage() {
               {CAT_STATUSES.map((c) => <option key={c}>{c}</option>)}
             </select>
           </Field>
-          <Field label="Postcode (for location search)">
-            <input value={form.postcode} onChange={(e) => update('postcode', e.target.value)} placeholder="e.g. SW1A 1AA" className="input" />
+          <Field label="Postcode (required)">
+            <input required value={form.postcode} onChange={(e) => update('postcode', e.target.value)} placeholder="e.g. SW1A 1AA" className="input" />
           </Field>
           <Field label="VIN (optional)"><input value={form.vin} onChange={(e) => update('vin', e.target.value)} className="input" /></Field>
         </div>
