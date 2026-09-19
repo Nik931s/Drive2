@@ -99,14 +99,23 @@ export default function EditListingForm({
     setLoading(true);
     setError(null);
 
+    if (!form.postcode.trim()) {
+      setError('A postcode is required so buyers can see where the car is located.');
+      setLoading(false);
+      return;
+    }
+
     let latitude = listing.latitude;
     let longitude = listing.longitude;
-    if (form.postcode.trim() && form.postcode.trim() !== (listing.postcode || '').trim()) {
+    if (form.postcode.trim() !== (listing.postcode || '').trim()) {
       const geo = await geocodePostcode(form.postcode);
-      if (geo) {
-        latitude = geo.lat;
-        longitude = geo.lng;
+      if (!geo) {
+        setError(`Couldn't recognise the postcode "${form.postcode}". Please check it and try again.`);
+        setLoading(false);
+        return;
       }
+      latitude = geo.lat;
+      longitude = geo.lng;
     }
 
     const { error: updateError } = await supabase
@@ -257,8 +266,8 @@ export default function EditListingForm({
             {CAT_STATUSES.map((c) => <option key={c}>{c}</option>)}
           </select>
         </Field>
-        <Field label="Postcode (for location search)">
-          <input value={form.postcode} onChange={(e) => update('postcode', e.target.value)} className="input" />
+        <Field label="Postcode (required)">
+          <input required value={form.postcode} onChange={(e) => update('postcode', e.target.value)} className="input" />
         </Field>
         <Field label="VIN (optional)"><input value={form.vin} onChange={(e) => update('vin', e.target.value)} className="input" /></Field>
       </div>
