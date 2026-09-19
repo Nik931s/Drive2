@@ -181,6 +181,7 @@ export default function Filters({
             className="border border-chrome px-2 py-1.5 text-sm"
           >
             {[5, 10, 25, 50, 100].map((r) => <option key={r} value={r}>{r} mi</option>)}
+            <option value="any">Nationwide</option>
           </select>
         </div>
         <button
