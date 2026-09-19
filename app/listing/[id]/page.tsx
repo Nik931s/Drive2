@@ -5,6 +5,7 @@ import ContactSellerForm from '@/components/ContactSellerForm';
 import PaymentCalculator from '@/components/PaymentCalculator';
 import SaveButton from '@/components/SaveButton';
 import FeatureListingButton from '@/components/FeatureListingButton';
+import DistanceBadge from '@/components/DistanceBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,8 +40,9 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
       <div className="bg-ink text-concrete p-5 flex justify-between items-start mb-6">
         <div>
           <h1 className="font-display text-4xl">{listing.year} {listing.make} {listing.model}</h1>
-          <p className="font-mono text-xs text-chrome mt-1">
-            {listing.vin ? `VIN ${listing.vin} · ` : ''}Listed by {listing.profiles?.full_name || 'a seller'}
+          <p className="font-mono text-xs text-chrome mt-1 flex items-center gap-2 flex-wrap">
+            <span>{listing.vin ? `VIN ${listing.vin} · ` : ''}Listed by {listing.profiles?.full_name || 'a seller'}</span>
+            <DistanceBadge lat={listing.latitude} lng={listing.longitude} />
           </p>
         </div>
         {user && !isOwner && <SaveButton listingId={listing.id} initialSaved={isSaved} />}
@@ -68,11 +70,16 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
             <div className="spec-row"><span>Price</span><span>£{Number(listing.price).toLocaleString()}</span></div>
             <div className="spec-row"><span>Mileage</span><span>{listing.mileage.toLocaleString()} mi</span></div>
             <div className="spec-row"><span>Body style</span><span>{listing.body_type}</span></div>
+            {listing.variant && <div className="spec-row"><span>Variant</span><span>{listing.variant}</span></div>}
             <div className="spec-row"><span>Exterior</span><span>{listing.color || '—'}</span></div>
             <div className="spec-row"><span>Transmission</span><span>{listing.transmission}</span></div>
             <div className="spec-row"><span>Drivetrain</span><span>{listing.drivetrain || '—'}</span></div>
             <div className="spec-row"><span>Fuel type</span><span>{listing.fuel_type}</span></div>
             <div className="spec-row"><span>Year</span><span>{listing.year}</span></div>
+            {listing.doors && <div className="spec-row"><span>Doors</span><span>{listing.doors}</span></div>}
+            {listing.seats && <div className="spec-row"><span>Seats</span><span>{listing.seats}</span></div>}
+            {listing.engine_size && <div className="spec-row"><span>Engine</span><span>{listing.engine_size}L</span></div>}
+            <div className="spec-row"><span>Write-off status</span><span>{listing.cat_status}</span></div>
           </div>
 
           {!isOwner && user && <ContactSellerForm listingId={listing.id} sellerId={listing.seller_id} />}
