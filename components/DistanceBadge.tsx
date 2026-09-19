@@ -1,6 +1,6 @@
 'use client';
 
-import { useUserLocation } from '@/lib/useUserLocation';
+import { useLocation } from '@/components/LocationProvider';
 
 function distanceMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 3958.8;
@@ -13,11 +13,11 @@ function distanceMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
 }
 
 export default function DistanceBadge({ lat, lng }: { lat: number | null; lng: number | null }) {
-  const position = useUserLocation();
+  const { coords } = useLocation();
 
-  if (lat == null || lng == null || !position) return null;
+  if (lat == null || lng == null || !coords) return null;
 
-  const miles = distanceMiles(position.coords.latitude, position.coords.longitude, lat, lng);
+  const miles = distanceMiles(coords.lat, coords.lng, lat, lng);
 
   return (
     <span className="font-mono text-[10px] text-inkSoft">
