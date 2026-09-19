@@ -133,7 +133,7 @@ export default async function BrowsePage({
   // which listings fall within range using their stored lat/lng.
   let locationMatchIds: string[] | null = null;
   let locationError: string | null = null;
-  if (searchParams.postcode && searchParams.radius) {
+  if (searchParams.postcode && searchParams.radius && searchParams.radius !== 'any') {
     const geo = await geocodePostcode(searchParams.postcode);
     if (geo) {
       const radiusMiles = Number(searchParams.radius);
