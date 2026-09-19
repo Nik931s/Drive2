@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabaseServer';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import ContactSellerForm from '@/components/ContactSellerForm';
+import MessageSellerButton from '@/components/MessageSellerButton';
 import PaymentCalculator from '@/components/PaymentCalculator';
 import SaveButton from '@/components/SaveButton';
 import FeatureListingButton from '@/components/FeatureListingButton';
@@ -82,7 +82,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
             <div className="spec-row"><span>Write-off status</span><span>{listing.cat_status}</span></div>
           </div>
 
-          {!isOwner && user && <ContactSellerForm listingId={listing.id} sellerId={listing.seller_id} />}
+          {!isOwner && user && <MessageSellerButton listingId={listing.id} sellerId={listing.seller_id} />}
           {!user && (
             <p className="text-sm text-inkSoft mt-4">
               <a href="/login" className="underline text-ink">Log in</a> to message the seller or save this listing.
