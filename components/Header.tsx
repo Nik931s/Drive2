@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseServer';
- 
+import LocationPrompt from '@/components/LocationPrompt';
+
 export default async function Header() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   return (
     <header className="sticky top-0 z-40 bg-ink text-concrete border-b-4 border-amber">
-      <div className="max-w-6xl mx-auto px-6 py-3 flex items-center gap-6">
+      <div className="max-w-6xl mx-auto px-6 py-3 flex items-center gap-6 flex-wrap">
         <Link href="/" className="font-display text-2xl tracking-wide whitespace-nowrap">
           DRIVE<span className="text-amber">·</span>WAY
         </Link>
@@ -15,6 +16,9 @@ export default async function Header() {
           <Link href="/sell" className="hover:text-amber">Sell</Link>
           {user && <Link href="/dashboard" className="hover:text-amber">Dashboard</Link>}
         </nav>
+        <div className="ml-2">
+          <LocationPrompt />
+        </div>
         <div className="ml-auto flex items-center gap-3">
           {user ? (
             <form action="/api/auth/signout" method="post">
@@ -37,4 +41,3 @@ export default async function Header() {
     </header>
   );
 }
- 
