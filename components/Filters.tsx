@@ -70,6 +70,10 @@ export default function Filters({
     Object.entries(values).forEach(([k, v]) => {
       if (v && v !== 'all') params.set(k, v);
     });
+    ['state', 'sort'].forEach((k) => {
+      const v = searchParams.get(k);
+      if (v) params.set(k, v);
+    });
     router.push(`${pathname}?${params.toString()}`);
   }
 
