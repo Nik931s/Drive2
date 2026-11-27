@@ -125,7 +125,7 @@ export default function EditListingForm({
         model: form.model,
         variant: form.variant || null,
         year: Number(form.year),
-        price: Number(form.price),
+        ...(listing.status === 'pending' ? { price: Number(form.price) } : {}),
         mileage: Number(form.mileage),
         body_type: form.body_type,
         fuel_type: form.fuel_type,
@@ -212,6 +212,12 @@ export default function EditListingForm({
         )}
       </div>
 
+      {listing.bid_count > 0 && (
+        <p className="text-xs text-inkSoft border border-chrome bg-concrete p-3">
+          Bidding has started, so the vehicle details are locked. You can still edit the description and photos.
+        </p>
+      )}
+      <fieldset disabled={listing.bid_count > 0} className="min-w-0 border-0 p-0 m-0">
       <div className="grid grid-cols-2 gap-4">
         <Field label="Make"><input required value={form.make} onChange={(e) => update('make', e.target.value)} className="input" /></Field>
         <Field label="Model"><input required value={form.model} onChange={(e) => update('model', e.target.value)} className="input" /></Field>
@@ -220,8 +226,8 @@ export default function EditListingForm({
           <input required type="number" min={1980} max={2026} value={form.year}
             onChange={(e) => update('year', e.target.value)} onWheel={preventScrollChange} className="input" />
         </Field>
-        <Field label="Price (£)">
-          <input required type="number" min={0} value={form.price}
+        <Field label="Starting bid (£)">
+          <input required disabled={listing.status !== 'pending'} type="number" min={0} value={form.price}
             onChange={(e) => update('price', e.target.value)} onWheel={preventScrollChange} className="input" />
         </Field>
         <Field label="Mileage">
@@ -271,6 +277,7 @@ export default function EditListingForm({
         </Field>
         <Field label="VIN (optional)"><input value={form.vin} onChange={(e) => update('vin', e.target.value)} className="input" /></Field>
       </div>
+      </fieldset>
 
       <Field label="Description">
         <textarea rows={4} value={form.description} onChange={(e) => update('description', e.target.value)} className="input" />
