@@ -1,13 +1,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Listing } from '@/lib/types';
+import { fmtMoney } from '@/lib/auction';
 import SaveButton from '@/components/SaveButton';
 import DeleteListingButton from '@/components/DeleteListingButton';
 import DistanceBadge from '@/components/DistanceBadge';
-
-function fmtMoney(n: number) {
-  return '£' + Math.round(n).toLocaleString();
-}
+import AuctionStatusBar from '@/components/AuctionStatusBar';
 
 export default function CarCard({
   listing,
@@ -35,6 +33,7 @@ export default function CarCard({
           <span className="font-mono text-xs text-inkSoft">No photo yet</span>
         )}
         <div className="absolute top-2 right-2 bg-ink text-concrete font-mono font-semibold text-xs px-2 py-1 border border-amber">
+          {listing.bid_count > 0 ? 'Bid ' : 'From '}
           {fmtMoney(listing.price)}
         </div>
         {listing.is_featured && (
@@ -48,6 +47,7 @@ export default function CarCard({
           </div>
         )}
       </div>
+      <AuctionStatusBar listing={listing} variant="compact" />
       <div className="p-3 flex-1 flex flex-col">
         <p className="font-bold text-sm">{listing.year} {listing.make} {listing.model}</p>
         <div className="flex items-center justify-between mb-2">
@@ -62,7 +62,7 @@ export default function CarCard({
           href={`/listing/${listing.id}`}
           className="mt-2 block text-center bg-green hover:bg-greenLight text-concrete text-xs font-bold py-2"
         >
-          View window sticker
+          View auction
         </Link>
         {ownerActions && (
           <div className="mt-2 flex items-center gap-2">
@@ -72,7 +72,7 @@ export default function CarCard({
             >
               Edit
             </Link>
-            <DeleteListingButton listingId={listing.id} />
+            {listing.bid_count === 0 && <DeleteListingButton listingId={listing.id} />}
           </div>
         )}
       </div>
