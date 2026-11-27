@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseServer';
+import { getIsAdmin } from '@/lib/admin';
 import LocationPrompt from '@/components/LocationPrompt';
 
 export default async function Header() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const isAdmin = user ? await getIsAdmin(supabase, user.id) : false;
+
   return (
     <header className="sticky top-0 z-40 bg-ink text-concrete border-b-4 border-amber">
       <div className="max-w-6xl mx-auto px-6 py-3 flex items-center gap-6 flex-wrap">
@@ -12,9 +15,10 @@ export default async function Header() {
           DRIVE<span className="text-amber">·</span>WAY
         </Link>
         <nav className="hidden sm:flex items-center gap-5 text-sm font-medium">
-          <Link href="/browse" className="hover:text-amber">Browse</Link>
+          <Link href="/browse" className="hover:text-amber">Auctions</Link>
           <Link href="/sell" className="hover:text-amber">Sell</Link>
           {user && <Link href="/dashboard" className="hover:text-amber">Dashboard</Link>}
+          {isAdmin && <Link href="/admin" className="text-amber hover:underline">Admin</Link>}
         </nav>
         <div className="ml-2">
           <LocationPrompt />
