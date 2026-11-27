@@ -78,6 +78,8 @@ export default function SellPage() {
         variant: form.variant || null,
         year: Number(form.year),
         price: Number(form.price),
+        starting_price: Number(form.price),
+        status: 'pending',
         mileage: Number(form.mileage),
         body_type: form.body_type,
         fuel_type: form.fuel_type,
@@ -123,7 +125,11 @@ export default function SellPage() {
 
   return (
     <div className="max-w-xl mx-auto px-6 py-12">
-      <h1 className="font-display text-5xl mb-6">List your car</h1>
+      <h1 className="font-display text-5xl mb-2">List your car</h1>
+      <p className="text-sm text-inkSoft mb-6">
+        Your car will be listed as an auction. Our team reviews every submission and sets the auction dates before it
+        goes live.
+      </p>
       <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-chrome p-6">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Make"><input required value={form.make} onChange={(e) => update('make', e.target.value)} className="input" /></Field>
@@ -133,7 +139,7 @@ export default function SellPage() {
             <input required type="number" min={1980} max={2026} value={form.year}
               onChange={(e) => update('year', e.target.value)} onWheel={preventScrollChange} className="input" />
           </Field>
-          <Field label="Price (£)">
+          <Field label="Starting bid (£)">
             <input required type="number" min={0} value={form.price}
               onChange={(e) => update('price', e.target.value)} onWheel={preventScrollChange} className="input" />
           </Field>
