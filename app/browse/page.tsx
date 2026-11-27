@@ -8,6 +8,12 @@ import type { Listing } from '@/lib/types';
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 24;
+const STATE_TABS = [
+  { key: '', label: 'All' },
+  { key: 'live', label: 'Live now' },
+  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'sold', label: 'Sold' },
+];
 const BODY_TYPES = ['Sedan', 'SUV', 'Truck', 'Coupe', 'Hatchback', 'EV', 'Van', 'Convertible'];
 const FUEL_TYPES = ['Petrol', 'Diesel', 'Hybrid', 'Plug-in Hybrid', 'Electric', 'LPG'];
 const CAT_STATUSES = ['None', 'Cat N', 'Cat S', 'Cat C (legacy)', 'Cat D (legacy)'];
@@ -55,10 +61,13 @@ export default async function BrowsePage({
 }) {
   const supabase = createClient();
 
+  // Close any auctions whose time has run out.
+  await supabase.rpc('finalise_auctions');
+
   const { data: aggregateRows } = await supabase
     .from('listings')
     .select('id, price, mileage, year, make, model, body_type, fuel_type, doors, seats, engine_size, cat_status, latitude, longitude')
-    .eq('status', 'active');
+    .in('status', ['active', 'sold']);
 
   const rows = aggregateRows || [];
   const totalCount = rows.length;
@@ -154,9 +163,17 @@ export default async function BrowsePage({
   let query = supabase
     .from('listings')
     .select('*, listing_photos(storage_path, sort_order)', { count: 'exact' })
-    .eq('status', 'active');
+    .in('status', ['active', 'sold']);
 
   if (searchParams.body) query = query.eq('body_type', searchParams.body);
+  const nowIso = new Date().toISOString();
+  if (searchParams.state === 'live') {
+    query = query.eq('status', 'active').lte('auction_start', nowIso).gt('auction_end', nowIso);
+  } else if (searchParams.state === 'upcoming') {
+    query = query.eq('status', 'active').gt('auction_start', nowIso);
+  } else if (searchParams.state === 'sold') {
+    query = query.eq('status', 'sold');
+  }
   if (searchParams.make) query = query.ilike('make', searchParams.make);
   if (searchParams.model) query = query.ilike('model', searchParams.model);
   if (searchParams.variant) query = query.ilike('variant', `%${searchParams.variant}%`);
@@ -182,6 +199,7 @@ export default async function BrowsePage({
   }
 
   switch (searchParams.sort) {
+    case 'ending-soon': query = query.order('auction_end', { ascending: true }); break;
     case 'price-asc': query = query.order('price', { ascending: true }); break;
     case 'price-desc': query = query.order('price', { ascending: false }); break;
     case 'mileage-asc': query = query.order('mileage', { ascending: true }); break;
@@ -231,6 +249,19 @@ export default async function BrowsePage({
           totalCount={totalCount}
         />
         <main>
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {STATE_TABS.map((t) => (
+              <Link
+                key={t.key}
+                href={buildHref(searchParams, { state: t.key, page: '' })}
+                className={`text-xs font-bold px-3 py-1.5 border ${
+                  (searchParams.state || '') === t.key ? 'bg-ink text-concrete border-ink' : 'border-chrome hover:border-ink'
+                }`}
+              >
+                {t.label}
+              </Link>
+            ))}
+          </div>
           <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
             <p className="text-sm text-inkSoft">
               <b className="text-ink">{totalMatching}</b> vehicles match
